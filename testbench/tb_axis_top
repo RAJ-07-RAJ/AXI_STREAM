@@ -1,0 +1,138 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 01/30/2026 01:37:29 PM
+// Design Name: 
+// Module Name: top_tb
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+`timescale 1ns/1ps
+
+module tb_axis_top;
+
+    // -----------------------------
+    // Clock & Reset
+    // -----------------------------
+    reg clk;
+    reg resetn;
+
+    always #5 clk = ~clk;  // 100 MHz
+
+    // -----------------------------
+    // DUT I/O
+    // -----------------------------
+    reg        newd;
+    reg [7:0]  din;
+    wire [7:0] dout;
+
+    // -----------------------------
+    // DUT instance
+    // -----------------------------
+    axis_top dut (
+        .clk    (clk),
+        .resetn (resetn),
+        .newd   (newd),
+        .din    (din),
+        .dout   (dout)
+    );
+
+    // -----------------------------
+    // Internal signal tapping
+    // -----------------------------
+    wire tvalid = dut.tvalid;
+    wire tready = dut.tready;
+    wire [7:0] tdata = dut.tdata;
+    wire tlast  = dut.tlast;
+
+    // -----------------------------
+    // Beat counter (scoreboard)
+    // -----------------------------
+    integer beat_count;
+
+    // -----------------------------
+    // Reset task
+    // -----------------------------
+    task reset_dut;
+        begin
+            resetn = 0;
+            newd   = 0;
+            din    = 0;
+            beat_count = 0;
+            repeat (5) @(posedge clk);
+            resetn = 1;
+        end
+    endtask
+
+    // -----------------------------
+    // Drive one AXI packet
+    // -----------------------------
+    task send_packet(input [7:0] data);
+        begin
+            @(posedge clk);
+            din  <= data;
+            newd <= 1'b1;
+
+            @(posedge clk);
+            newd <= 1'b0;
+        end
+    endtask
+
+    // -----------------------------
+    // Handshake monitoring
+    // -----------------------------
+    always @(posedge clk) begin
+        if (!resetn) begin
+            beat_count <= 0;
+        end
+        else if (tvalid && tready) begin
+            beat_count <= beat_count + 1;
+
+            $display("[%0t] TRANSFER: data=%0d last=%0b",
+                      $time, tdata, tlast);
+
+            // TLAST must be only on 4th beat
+            if (beat_count < 3 && tlast)
+                $error("TLAST asserted too early!");
+
+            if (beat_count == 3 && !tlast)
+                $error("TLAST missing on final beat!");
+        end
+    end
+
+    // -----------------------------
+    // End condition
+    // -----------------------------
+    always @(posedge clk) begin
+        if (beat_count == 4) begin
+            $display("? Packet transfer complete (4 beats)");
+            #20;
+            $finish;
+        end
+    end
+
+    // -----------------------------
+    // Test sequence
+    // -----------------------------
+    initial begin
+        clk = 0;
+        reset_dut();
+
+        $display("Starting AXI-Stream test...");
+        send_packet(8'd10);
+    end
+
+endmodule
+
