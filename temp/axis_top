@@ -1,1 +1,69 @@
+`timescale 1ns / 1ps
+//////////////////////////////////////////////////////////////////////////////////
+// Company: 
+// Engineer: 
+// 
+// Create Date: 01/30/2026 01:36:23 PM
+// Design Name: 
+// Module Name: top
+// Project Name: 
+// Target Devices: 
+// Tool Versions: 
+// Description: 
+// 
+// Dependencies: 
+// 
+// Revision:
+// Revision 0.01 - File Created
+// Additional Comments:
+// 
+//////////////////////////////////////////////////////////////////////////////////
+
+
+module axis_top (
+    input   clk,
+    input   resetn,
+
+    // Master-side inputs
+    input         newd,
+    input  [7:0]  din,
+
+    // Slave-side output
+    output  [7:0]  dout
+);
+
+    // AXI-Stream interconnect wires
+    wire        tvalid;
+    wire        tready;
+    wire [7:0]  tdata;
+    wire        tlast;
+
+    // =========================
+    // AXI-Stream MASTER
+    // =========================
+    axis_m u_axis_m (
+        .m_axis_aclk     (clk),
+        .m_axis_aresetn  (resetn),
+        .newd            (newd),
+        .din             (din),
+        .m_axis_tready   (tready),
+        .m_axis_tvalid   (tvalid),
+        .m_axis_tdata    (tdata),
+        .m_axis_tlast    (tlast)
+    );
+
+    // =========================
+    // AXI-Stream SLAVE
+    // =========================
+    axis_s u_axis_s (
+        .s_axis_aclk     (clk),
+        .s_axis_aresetn  (resetn),
+        .s_axis_tready   (tready),
+        .s_axis_tvalid   (tvalid),
+        .s_axis_tdata    (tdata),
+        .s_axis_tlast    (tlast),
+        .dout            (dout)
+    );
+
+endmodule
 
