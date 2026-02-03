@@ -1,6 +1,6 @@
 
 
-# AXI-Stream Master–Slave RTL (Ready Baseline)
+# AXI-Stream Master–Slave RTL 
 
 ## Overview
 
